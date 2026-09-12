@@ -1,97 +1,167 @@
-import Product from '../models/product.model.js';
+import Product from "../models/product.model.js";
 
 export const getCartProducts = async (req, res) => {
-    try {
-        const products = await Product.find({ _id: { $in: req.user.cartItems } });
+  try {
+    const user = req.user;
 
-        const cartItems = products.map(product => {
-            const item = req.user.cartItems.find(
-                (cartItem) => cartItem.id.toString() === product.id.toString()
-            );
-            return { ...product.toJSON(), quantity: item.quantity };
-        });
+    // Remove legacy/broken cart items which have no product reference
+    const validCartItems = user.cartItems.filter((item) => item.product);
 
-        res.json(cartItems);
-    } catch (error) {
-        console.log("Error in getCartProducts controller", error.message);
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (validCartItems.length !== user.cartItems.length) {
+      user.cartItems = validCartItems;
+      await user.save();
     }
+
+    const productIds = validCartItems.map((item) => item.product);
+
+    const products = await Product.find({
+      _id: { $in: productIds },
+    });
+
+    const cartItems = products.map((product) => {
+      const cartItem = validCartItems.find(
+        (item) =>
+          item.product &&
+          item.product.toString() === product._id.toString()
+      );
+
+      return {
+        ...product.toJSON(),
+        quantity: cartItem ? cartItem.quantity : 1,
+      };
+    });
+
+    res.json(cartItems);
+  } catch (error) {
+    console.log("Error in getCartProducts controller:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 export const addToCart = async (req, res) => {
-    try {
-        const { productId } = req.body;
-        const user = req.user;
+  try {
+    const { productId } = req.body;
+    const user = req.user;
 
-        const existingItem = user.cartItems.find(
-            (item) => item.id.toString() === productId.toString()
-        );
-
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            user.cartItems.push({ id: productId, quantity: 1 });
-        }
-
-        await user.save();
-        res.json(user.cartItems);
-    } catch (error) {
-        console.log("Error in addToCart controller", error.message);
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (!productId) {
+      return res.status(400).json({
+        message: "Product ID is required",
+      });
     }
+
+    const productExists = await Product.findById(productId);
+
+    if (!productExists) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    // Clean legacy malformed entries first
+    user.cartItems = user.cartItems.filter((item) => item.product);
+
+    const existingItem = user.cartItems.find(
+      (item) =>
+        item.product &&
+        item.product.toString() === productId.toString()
+    );
+
+    if (existingItem) {
+      existingItem.quantity = Number(existingItem.quantity) + 1;
+    } else {
+      user.cartItems.push({
+        product: productId,
+        quantity: 1,
+      });
+    }
+
+    await user.save();
+
+    res.json(user.cartItems);
+  } catch (error) {
+    console.log("Error in addToCart controller:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 export const removeAllFromCart = async (req, res) => {
-    try {
-        const { productId } = req.body;
-        const user = req.user;
+  try {
+    const { productId } = req.body;
+    const user = req.user;
 
-        if (!productId) {
-            user.cartItems = [];
-        } else {
-            user.cartItems = user.cartItems.filter(
-                (item) => item.id.toString() !== productId.toString()
-            );
-        }
-
-        await user.save();          
-        res.json(user.cartItems);   
-    } catch (error) {
-        console.log("Error in removeAllFromCart controller", error.message);
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (!productId) {
+      user.cartItems = [];
+    } else {
+      user.cartItems = user.cartItems.filter(
+        (item) =>
+          item.product &&
+          item.product.toString() !== productId.toString()
+      );
     }
+
+    await user.save();
+
+    res.json(user.cartItems);
+  } catch (error) {
+    console.log("Error in removeAllFromCart controller:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
 
 export const updateQuantity = async (req, res) => {
-    try {
-        const { id: productId } = req.params;
-        const { quantity } = req.body;
-        const user = req.user;
+  try {
+    const { id: productId } = req.params;
+    const quantity = Number(req.body.quantity);
+    const user = req.user;
 
-         console.log("PRODUCT ID FROM URL:", productId);
-        console.log("CART ITEMS:", user.cartItems);
-
-        const existingItem = user.cartItems.find(
-            (item) => item.id.toString() === productId.toString()
-        );
-
-        if (existingItem) {
-            if (quantity === 0) {
-                user.cartItems = user.cartItems.filter(
-                    (item) => item.id.toString() !== productId.toString() // ✅ added .toString()
-                );
-                await user.save();
-                return res.json(user.cartItems);
-            }
-
-            existingItem.quantity = quantity;
-            await user.save();
-            res.json(user.cartItems);
-        } else {
-            res.status(404).json({ message: "Product not found" });
-        }
-    } catch (error) {
-        console.log("Error in updateQuantity controller", error.message);
-        res.status(500).json({ message: "Server error", error: error.message });
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return res.status(400).json({
+        message: "Invalid quantity",
+      });
     }
+
+    // Clean legacy entries
+    user.cartItems = user.cartItems.filter((item) => item.product);
+
+    const existingItem = user.cartItems.find(
+      (item) =>
+        item.product &&
+        item.product.toString() === productId.toString()
+    );
+
+    if (!existingItem) {
+      return res.status(404).json({
+        message: "Product not found in cart",
+      });
+    }
+
+    if (quantity === 0) {
+      user.cartItems = user.cartItems.filter(
+        (item) =>
+          item.product &&
+          item.product.toString() !== productId.toString()
+      );
+    } else {
+      existingItem.quantity = quantity;
+    }
+
+    await user.save();
+
+    res.json(user.cartItems);
+  } catch (error) {
+    console.log("Error in updateQuantity controller:", error);
+    res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
 };
