@@ -1,6 +1,7 @@
 import Coupon from "../models/coupon.model.js";
 import Order from "../models/order.model.js";
 import {stripe} from '../lib/stripe.js';
+import User from "../models/user.model.js";
 
 export const createCheckoutSession = async (req, res) => {
     try{
@@ -51,7 +52,7 @@ const session = await stripe.checkout.sessions.create({
     ]
     : [],
     metadata: {
-        userid:req.user._id.toString(),
+        userId: req.user._id.toString(), 
         couponCode:couponCode || "",
         products: JSON.stringify(
             products.map((p) => ({
@@ -66,55 +67,65 @@ const session = await stripe.checkout.sessions.create({
 if(totalAmount >= 20000) {
     await createNewCoupon(req.user._id)
 }
-res.status(200).json({ id: session.id, totalAmount: totalAmount / 100 });
+res.status(200).json({ id: session.id, url: session.url, totalAmount: totalAmount / 100 });
 } catch (error) {
      console.error("Error processing checkout", error);
         res.status(500).json({ message: "Error processing checkout", error: error.message });
 }
 };
 
-export const checkoutSucess = async(req,res) => {
-    try {
-const {sessionId} = req.body;
-const session = await stripe.checkout.session.retrieve(sessionId);
+export const checkoutSuccess = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-if(session.payment_status === "paid") {
+    if (session.payment_status === "paid") {
 
-    if(session.metadata.couponCode) {
-        await Coupon.findOneAndUpdate({
-            code: session.metadata.couponCode, userId:session.metadata.userId
-        }, {
-            isActive:false
-        })
-    }
+      // deactivate coupon
+      if (session.metadata.couponCode) {
+        await Coupon.findOneAndUpdate(
+          {
+            code: session.metadata.couponCode,
+            userId: session.metadata.userId,
+          },
+          { isActive: false }
+        );
+      }
 
-    //create a new Order
-    const products = JSON.parse(session.metadata.products);
-    const newOrder = new Order({
-        user: session.metadata.userid,
-        products: products.map(product => ({
-         products: product.id,
-        quantity: product.quantity,
-        price: product.price,
+      // create order
+      const products = JSON.parse(session.metadata.products);
+      const newOrder = new Order({
+        user: session.metadata.userId,
+        products: products.map((product) => ({
+          product: product.id,
+          quantity: product.quantity,
+          price: product.price,
         })),
-       totalAmount: session.amount_total / 100, // convert from cents to dollars,
-       stripeSessionId: sessionId
-    })
+        totalAmount: session.amount_total / 100,
+        stripeSessionId: sessionId,
+      });
 
-    await newOrder.save();
+      await newOrder.save();
 
-    res,status(200).json({
+      // ✅ CLEAR CART
+      await User.findByIdAndUpdate(session.metadata.userId, {
+        cartItems: [],
+      });
+
+      res.status(200).json({
         success: true,
-        message: "Payment successful, order created, and coupon deactivated if used,",
+        message: "Payment successful, order created, cart cleared",
         orderId: newOrder._id,
-    });
-
-}
-    } catch (error) {
-        console.error("Error processing successful checkout", error);
-        res.status(500).json({ message: "Error processing successful checkout", error: error.message });
+      });
     }
-}
+  } catch (error) {
+    console.error("Error processing successful checkout", error);
+    res.status(500).json({
+      message: "Error processing successful checkout",
+      error: error.message,
+    });
+  }
+};
 
 async function createStripeCoupon(discountPercentage) {
     const coupon = await stripe.coupons.create({
@@ -130,7 +141,8 @@ async function createNewCoupon(userId){
         code: "GIFT" + Math.random().toString(36).substring(2, 8).toUpperCase(),
         discountPercentage:10,
         expirationDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        userId:userId
+        userId:userId,
+        isActive: true
     })
 
     await newCoupon.save();
