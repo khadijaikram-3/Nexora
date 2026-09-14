@@ -24,8 +24,9 @@ const lineItems = products.map(product => {
                 images:[product.image],
             },
             unit_amount: amount
-        }
-    }
+        },
+        quantity: product.quantity || 1,
+    };
 });
 
 let coupon = null;
@@ -38,8 +39,8 @@ if(couponCode) {
 
 const session = await stripe.checkout.sessions.create({
     payment_method_types:["card",],
-    line_items: lineItemms,
-    mode:"payments",
+    line_items: lineItems,
+    mode:"payment",
     success_url:`${process.env.CLIENT_URL}/purchase-success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url:`${process.env.CLIENT_URL}/purchase-cancel`,
     discounts: coupon

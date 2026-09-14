@@ -19,7 +19,7 @@ const GiftCouponCard = () => {
   animate={{ opacity: 1, y: 0 }}
   transition={{ duration: 0.5, delay: 0.2}}
   >
-    <div classname='space-y-4'>
+    <div className='space-y-4'>
         <div>
             <label htmlFor='voucher' className='mb-2 block text-sm font-medium text-gray-300'>
                 Do you have a voucher or gift card?
@@ -38,9 +38,9 @@ const GiftCouponCard = () => {
         <motion.button
         type='button'
         className='flex w-full items-center justify-center rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-300'
-        whilehover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onclick={handleApplyCoupon}
+        onClick={handleApplyCoupon}
         >
             Apply Code
         </motion.button>
@@ -57,7 +57,7 @@ const GiftCouponCard = () => {
 
             <motion.button
             type='button'
-            classname='mt-2 flex w-full items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300'
+            className='mt-2 flex w-full items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-4 focus:ring-red-300'
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleRemoveCoupon}
@@ -71,8 +71,8 @@ const GiftCouponCard = () => {
     {coupon && (
         <div className='mt-4'>
         <h3 className='text-lg font-medium text-gray-300'>Your Available Coupon:</h3>
-        <p classname='mt-2 text-sm text-gray-400'>
-            {coupon.code} - {coupon.discountPercentage}%off
+        <p className='mt-2 text-sm text-gray-400'>
+            {coupon.code} - {coupon.discountPercentage}% off
         </p>
         </div>
     )}
