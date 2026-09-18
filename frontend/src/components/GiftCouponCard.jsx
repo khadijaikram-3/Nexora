@@ -1,17 +1,36 @@
 import {motion} from "framer-motion";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCartStore } from "../stores/useCartStore";
+import { toast } from "react-hot-toast";
 const GiftCouponCard = () => {
     const [userInputCode, setUserInputCode] = useState('');
-    const{coupon, isCouponApplied} = useCartStore();
+    const{coupon, isCouponApplied, applyCoupon, getMyCoupon, removeCoupon } = useCartStore();
 
-    const handleApplyCoupon = () => {
-        console.log(userInputCode);
+    useEffect(() => {
+    const loadCoupon = async () => {
+        const couponData = await getMyCoupon();
+
+        if (couponData?.code) {
+            setUserInputCode(couponData.code);
+        }
+    };
+
+    loadCoupon();
+}, [getMyCoupon]);
+
+       const handleApplyCoupon = () => {
+         if (!userInputCode.trim()) {
+        toast.error("Please enter a coupon code");
+        return;
     }
 
-    const handleRemoveCoupon = () => {
-     console.log("remove coupon");
-    }
+    applyCoupon(userInputCode.trim());
+};
+
+const handleRemoveCoupon = () => {
+    removeCoupon();
+    setUserInputCode('');
+};
 
   return ( <motion.div
   className='space-y-4 rounded-lg border border-gray-700 bg-gray-800 p-4 shadow-sm sm:p-6'
