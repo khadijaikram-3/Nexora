@@ -13,19 +13,28 @@ const OrderSummary = () => {
   const formattedSavings = savings.toFixed(2);
 
   const handlePayment = async () => {
-    try {
-      const res = await axios.post("/payments/create-checkout-session", {
-        products: cart,
-        couponCode: coupon ? coupon.code : null,
-      });
+  try {
+    console.log("Creating NEW checkout session...");
 
-      const session = res.data;
+    const res = await axios.post("/payments/create-checkout-session", {
+      products: cart,
+      couponCode: coupon ? coupon.code : null,
+    });
 
-      window.location.href = session.url;
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
+    console.log("Checkout response:", res.data);
+    console.log("NEW Session ID:", res.data.id);
+    console.log("NEW Session URL:", res.data.url);
+
+    if (!res.data.url) {
+      throw new Error("Stripe Checkout URL was not returned by the server.");
     }
-  };
+
+    window.location.assign(res.data.url);
+  } catch (error) {
+    console.error("Checkout error:", error);
+    console.error("Server response:", error.response?.data);
+  }
+};
 
   return (
     <motion.div
