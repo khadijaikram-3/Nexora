@@ -1,13 +1,14 @@
-
 import { ArrowRight, CheckCircle, HandHeart, Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "../lib/axios";
 import Confetti from "react-confetti";
+import { useCartStore } from "../stores/useCartStore";
 
 const PurchaseSuccessPage = () => {
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState(null);
+  const { clearCart } = useCartStore();
 
   useEffect(() => {
     let isMounted = true;
@@ -29,6 +30,8 @@ const PurchaseSuccessPage = () => {
         await axios.post("/payments/checkout-success", {
           sessionId,
         });
+
+        clearCart();
       } catch (error) {
         console.error("Checkout success processing failed:", error);
 
@@ -50,7 +53,7 @@ const PurchaseSuccessPage = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [clearCart]);
 
   if (isProcessing) {
     return (
@@ -113,7 +116,6 @@ const PurchaseSuccessPage = () => {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080B12] px-4 py-12">
-      {/* Subtle background detail */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#22C55E]/[0.025] blur-3xl" />
       </div>
@@ -129,14 +131,12 @@ const PurchaseSuccessPage = () => {
 
       <div className="relative z-10 w-full max-w-md overflow-hidden rounded-xl border border-[#1E293B] bg-[#121824] shadow-xl">
         <div className="p-6 sm:p-8">
-          {/* Success Icon */}
           <div className="mb-5 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[#22C55E]/20 bg-[#22C55E]/10">
               <CheckCircle className="h-8 w-8 text-[#22C55E]" />
             </div>
           </div>
 
-          {/* Heading */}
           <p className="mb-2 text-center text-sm font-medium uppercase tracking-[0.18em] text-[#22C55E]">
             Order Confirmed
           </p>
@@ -153,7 +153,6 @@ const PurchaseSuccessPage = () => {
             Check your email for order details and updates.
           </p>
 
-          {/* Order Information */}
           <div className="my-6 rounded-lg border border-[#1E293B] bg-[#0D111A] p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm text-[#64748B]">
@@ -176,7 +175,6 @@ const PurchaseSuccessPage = () => {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="space-y-3">
             <div className="flex w-full items-center justify-center rounded-lg border border-[#22C55E]/20 bg-[#22C55E]/[0.06] px-4 py-2.5 text-sm font-semibold text-[#22C55E]">
               <HandHeart className="mr-2 h-4 w-4" />
@@ -198,4 +196,3 @@ const PurchaseSuccessPage = () => {
 };
 
 export default PurchaseSuccessPage;
-
