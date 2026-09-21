@@ -1,14 +1,13 @@
+
 import { ArrowRight, CheckCircle, HandHeart, Loader } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { useCartStore } from "../stores/useCartStore";
 import axios from "../lib/axios";
 import Confetti from "react-confetti";
 
 const PurchaseSuccessPage = () => {
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState(null);
-  const { clearCart } = useCartStore();
 
   useEffect(() => {
     let isMounted = true;
@@ -27,11 +26,9 @@ const PurchaseSuccessPage = () => {
           return;
         }
 
-        await axios.post("/payments/checkout-success", { sessionId });
-
-        if (isMounted) {
-          await clearCart();
-        }
+        await axios.post("/payments/checkout-success", {
+          sessionId,
+        });
       } catch (error) {
         console.error("Checkout success processing failed:", error);
 
@@ -53,13 +50,13 @@ const PurchaseSuccessPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [clearCart]);
+  }, []);
 
   if (isProcessing) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080B12] px-4">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#38BDF8]/[0.025] blur-3xl" />
+          <div className="absolute left-1/2 top-1/2 h-[450px] w-[450px] -translate-x-1/2 -translate-y-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#38BDF8]/[0.025] blur-3xl" />
         </div>
 
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -118,7 +115,7 @@ const PurchaseSuccessPage = () => {
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#080B12] px-4 py-12">
       {/* Subtle background detail */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#22C55E]/[0.025] blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#22C55E]/[0.025] blur-3xl" />
       </div>
 
       <Confetti
@@ -201,3 +198,4 @@ const PurchaseSuccessPage = () => {
 };
 
 export default PurchaseSuccessPage;
+
